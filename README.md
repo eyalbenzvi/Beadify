@@ -47,6 +47,15 @@ The current project autosaves locally and is restored on reload.
 | `react-tailwind-design-system` | Tokens, layout, accessibility, motion, React patterns |
 | `export-print-engine` | PNG / SVG / PDF / print output and pagination |
 
+## Deployment (GitHub Pages)
+
+`.github/workflows/deploy-pages.yml` builds the app and publishes `dist/` to GitHub Pages on every
+push to `main` (or the working branch), and can be run manually from the Actions tab.
+
+One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+The site is then served at `https://eyalbenzvi.github.io/Beadify/`. The Vite `base` is relative
+(`./`), so the build works from any sub-path.
+
 ## Development
 
 ```bash

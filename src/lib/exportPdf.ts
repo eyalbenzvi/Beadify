@@ -257,5 +257,5 @@ export async function exportPatternPdf(pattern: Pattern, usage: ColorUsage[], op
     footer(page);
   }
 
-  doc.save(`${safeFilename(opts.title)}-pattern.pdf`);
+  doc.save(`${safeFilename(opts.title)}.pdf`);
 }
