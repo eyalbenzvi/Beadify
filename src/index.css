@@ -3,11 +3,26 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-canvas: 251 247 255;
+    --color-surface: 255 255 255;
+    --color-surface-muted: 248 250 252;
+    --color-surface-sunken: 241 245 249;
+    --color-ink: 30 41 59;
+    --color-ink-soft: 51 65 85;
+    --color-ink-muted: 71 85 105;
+    /* 4.76:1 on white: the lightest text colour allowed */
+    --color-ink-subtle: 100 116 139;
+    --color-line: 226 232 240;
+    --color-line-soft: 241 245 249;
+    --color-line-strong: 203 213 225;
+    --color-inverse: 15 23 42;
+  }
   html {
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply min-h-screen bg-[#FBF7FF] font-sans text-slate-800 antialiased;
+    @apply min-h-screen bg-canvas font-sans text-ink antialiased;
     background-image:
       radial-gradient(circle at 10% 0%, rgba(244, 114, 182, 0.12), transparent 40%),
       radial-gradient(circle at 90% 10%, rgba(167, 139, 250, 0.12), transparent 40%),
@@ -21,7 +36,7 @@
 
 @layer components {
   .card {
-    @apply rounded-3xl border border-white/70 bg-white/85 shadow-soft backdrop-blur;
+    @apply rounded-panel border border-white/70 bg-surface/85 shadow-soft backdrop-blur;
   }
   .btn {
     @apply inline-flex select-none items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
@@ -30,22 +45,22 @@
     @apply btn bg-gradient-to-r from-brand-500 to-violet-500 text-white shadow-pop hover:brightness-110;
   }
   .btn-secondary {
-    @apply btn border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700;
+    @apply btn border border-line bg-white text-ink-soft hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700;
   }
   .btn-ghost {
-    @apply btn text-slate-600 hover:bg-slate-100;
+    @apply btn text-ink-muted hover:bg-surface-sunken;
   }
   .btn-icon {
-    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 active:scale-95 disabled:pointer-events-none disabled:opacity-40;
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-muted transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 active:scale-95 disabled:pointer-events-none disabled:opacity-40;
   }
   .btn-icon-active {
     @apply border-brand-400 bg-brand-500 text-white hover:bg-brand-500 hover:text-white;
   }
   .label {
-    @apply text-xs font-extrabold uppercase tracking-wider text-slate-500;
+    @apply text-xs font-extrabold uppercase tracking-wider text-ink-subtle;
   }
   .input {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition placeholder:font-normal placeholder:text-slate-400 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200;
+    @apply w-full rounded-xl border border-line bg-white px-3 py-2 text-sm font-semibold text-ink-soft shadow-sm transition placeholder:font-normal placeholder:text-ink-subtle focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200;
   }
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition active:scale-95;
@@ -68,6 +83,18 @@
   }
   .touch-none-all {
     touch-action: none;
+  }
+}
+
+/* Respect users who ask for less motion: kill animations, transitions and smooth scrolling. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -107,10 +134,7 @@ input[type='range'].slider::-moz-range-thumb {
 }
 
 @media print {
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
-  }
+  /* @page size is injected by PrintView from the chosen paper size. */
   body {
     background: #fff !important;
     -webkit-print-color-adjust: exact;

@@ -42,6 +42,8 @@ export const DEFAULT_VIEW: ViewPreferences = {
   showSymbols: false,
   beadStyle: 'round',
   showBoardLines: true,
+  pageSize: 'a4',
+  pngCellPx: 0,
 };
 
 const PROJECT_KEY = 'beadify:project:v1';
@@ -213,7 +215,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // set a pattern/source and navigate in the same event handler.
   const setStep = useCallback((s: StepId) => {
     setStepState(s);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
 
   // Keep the active step valid if prerequisites disappear.

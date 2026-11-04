@@ -5,12 +5,14 @@ import { contrastText } from '../lib/color';
 import { boardsNeeded, columnLabel, totalBeads } from '../lib/pattern';
 import { computeTiles } from '../lib/exportPdf';
 import { drawPatternThumbnail } from '../lib/render';
+import { PAGE_MARGIN, PAGE_SIZES, type PageSizeId } from '../lib/pageGeometry';
 
 interface Props {
   pattern: Pattern;
   usage: ColorUsage[];
   title: string;
   showSymbols: boolean;
+  pageSize: PageSizeId;
 }
 
 const CELL = 10;
@@ -20,7 +22,10 @@ const AXIS = 14;
  * Print-only layout (hidden on screen). An overview + legend page followed by
  * one vector SVG page per pegboard section, so printouts stay razor sharp.
  */
-export default function PrintView({ pattern, usage, title, showSymbols }: Props) {
+export default function PrintView({ pattern, usage, title, showSymbols, pageSize }: Props) {
+  const paper = PAGE_SIZES[pageSize];
+  // Height available for a board grid: page minus margins and the page heading.
+  const gridMaxH = paper.height - PAGE_MARGIN * 2 - 18;
   const symbols = useMemo(() => new Map(usage.map((u) => [u.color.id, u])), [usage]);
   const tiles = useMemo(() => computeTiles(pattern.width, pattern.height), [pattern.width, pattern.height]);
   const overview = useMemo(() => {
@@ -31,10 +36,11 @@ export default function PrintView({ pattern, usage, title, showSymbols }: Props)
   const boards = boardsNeeded(pattern.width, pattern.height);
 
   return createPortal(
-    <div className="print-only bg-white font-sans text-slate-900">
+    <div className="print-only bg-white font-sans text-ink">
+      <style>{`@page { size: ${paper.css}; margin: ${PAGE_MARGIN}mm; }`}</style>
       <section className="print-page">
         <h1 className="font-display text-2xl font-bold">{title}</h1>
-        <p className="mb-3 text-xs text-slate-600">
+        <p className="mb-3 text-xs text-ink-muted">
           {pattern.width} × {pattern.height} pegs · {totalBeads(pattern).toLocaleString()} beads · {usage.length} colours ·{' '}
           {boards.total} pegboard{boards.total === 1 ? '' : 's'} ({boards.across} × {boards.down}) · Made with Beadify
         </p>
@@ -42,7 +48,7 @@ export default function PrintView({ pattern, usage, title, showSymbols }: Props)
         <h2 className="mb-2 text-base font-bold">Colour legend</h2>
         <table className="w-full border-collapse text-[10px]">
           <thead>
-            <tr className="border-b border-slate-300 text-left">
+            <tr className="border-b border-line-strong text-left">
               <th className="py-1">Symbol</th>
               <th className="py-1">Code</th>
               <th className="py-1">Name</th>
@@ -53,7 +59,7 @@ export default function PrintView({ pattern, usage, title, showSymbols }: Props)
           </thead>
           <tbody>
             {usage.map((u) => (
-              <tr key={u.color.id} className="print-avoid-break border-b border-slate-100">
+              <tr key={u.color.id} className="print-avoid-break border-b border-line-soft">
                 <td className="py-0.5">
                   <span
                     className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-[9px] font-black"
@@ -81,10 +87,10 @@ export default function PrintView({ pattern, usage, title, showSymbols }: Props)
             <h2 className="text-base font-bold">
               Board {i + 1} of {tiles.length}
             </h2>
-            <p className="mb-2 text-[10px] text-slate-600">
+            <p className="mb-2 text-[10px] text-ink-muted">
               Columns {columnLabel(t.x0)}–{columnLabel(t.x0 + t.w - 1)}, rows {t.y0 + 1}–{t.y0 + t.h}
             </p>
-            <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ maxHeight: '245mm' }} xmlns="http://www.w3.org/2000/svg">
+            <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ maxHeight: `${gridMaxH}mm` }} xmlns="http://www.w3.org/2000/svg">
               {Array.from({ length: t.h }, (_, yy) =>
                 Array.from({ length: t.w }, (_, xx) => {
                   const id = pattern.cells[(t.y0 + yy) * pattern.width + (t.x0 + xx)];

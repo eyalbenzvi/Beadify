@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import Header from './components/Header';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Spinner } from './components/ui';
 import { useApp } from './context/AppContext';
 import UploadStep from './steps/UploadStep';
@@ -19,7 +20,8 @@ export default function App() {
           {restoring ? (
             <Spinner label="Restoring your last project…" className="py-24" />
           ) : (
-            <div key={step} className="animate-fade-in-up">
+            <ErrorBoundary resetKey={step}>
+            <div key={step} className="motion-safe:animate-fade-in-up">
               {step === 1 && <UploadStep />}
               {step === 2 && <CropStep />}
               {step === 3 && <InventoryStep />}
@@ -29,9 +31,10 @@ export default function App() {
                 </Suspense>
               )}
             </div>
+            </ErrorBoundary>
           )}
         </main>
-        <footer className="no-print py-6 text-center text-xs font-semibold text-slate-400">
+        <footer className="no-print py-6 text-center text-xs font-semibold text-ink-subtle">
           Beadify · Everything runs in your browser — your images never leave your device.
         </footer>
       </div>

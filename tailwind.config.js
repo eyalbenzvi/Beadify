@@ -8,6 +8,25 @@ export default {
         display: ['Fredoka', 'Nunito', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
+        // Semantic tokens backed by CSS variables in src/index.css (rgb channels for /opacity support)
+        canvas: 'rgb(var(--color-canvas) / <alpha-value>)',
+        surface: {
+          DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+          muted: 'rgb(var(--color-surface-muted) / <alpha-value>)',
+          sunken: 'rgb(var(--color-surface-sunken) / <alpha-value>)',
+        },
+        ink: {
+          DEFAULT: 'rgb(var(--color-ink) / <alpha-value>)',
+          soft: 'rgb(var(--color-ink-soft) / <alpha-value>)',
+          muted: 'rgb(var(--color-ink-muted) / <alpha-value>)',
+          subtle: 'rgb(var(--color-ink-subtle) / <alpha-value>)',
+        },
+        line: {
+          DEFAULT: 'rgb(var(--color-line) / <alpha-value>)',
+          soft: 'rgb(var(--color-line-soft) / <alpha-value>)',
+          strong: 'rgb(var(--color-line-strong) / <alpha-value>)',
+        },
+        inverse: 'rgb(var(--color-inverse) / <alpha-value>)',
         brand: {
           50: '#fdf2f8',
           100: '#fce7f3',
@@ -20,6 +39,14 @@ export default {
           800: '#9d174d',
           900: '#831843',
         },
+      },
+      borderRadius: {
+        control: '0.75rem',
+        panel: '1.5rem',
+      },
+      transitionDuration: {
+        fast: '150ms',
+        base: '250ms',
       },
       boxShadow: {
         soft: '0 2px 12px -2px rgba(76, 29, 149, 0.08), 0 1px 3px rgba(15, 23, 42, 0.06)',

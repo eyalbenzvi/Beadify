@@ -3,10 +3,11 @@ import type {
   BeadColor,
   ConversionSettings,
   CropRect,
-  Pattern,
   SourceImage,
 } from '../types';
-import { createMatcher } from './quantize';
+import { applyAdjustments, type RegionData } from './patternEngine';
+
+export { applyAdjustments };
 
 export const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml'];
 const MAX_SOURCE_DIMENSION = 2048;
@@ -93,28 +94,6 @@ export async function transformSource(src: SourceImage, op: SourceTransform): Pr
   const dataUrl = canvas.toDataURL('image/png');
   const element = await loadImageElement(dataUrl);
   return { name: src.name, dataUrl, width: w, height: h, element };
-}
-
-/** Applies brightness / contrast / saturation to RGBA data in place. */
-export function applyAdjustments(data: Uint8ClampedArray, adj: Adjustments): void {
-  const { brightness, contrast, saturation } = adj;
-  if (brightness === 0 && contrast === 0 && saturation === 0) return;
-  const bOffset = brightness * 1.28;
-  const c = contrast * 2.55;
-  const cFactor = (259 * (c + 255)) / (255 * (259 - c));
-  const sFactor = 1 + saturation / 100;
-  for (let i = 0; i < data.length; i += 4) {
-    let r = data[i] + bOffset;
-    let g = data[i + 1] + bOffset;
-    let b = data[i + 2] + bOffset;
-    r = cFactor * (r - 128) + 128;
-    g = cFactor * (g - 128) + 128;
-    b = cFactor * (b - 128) + 128;
-    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-    data[i] = gray + (r - gray) * sFactor;
-    data[i + 1] = gray + (g - gray) * sFactor;
-    data[i + 2] = gray + (b - gray) * sFactor;
-  }
 }
 
 export function cropToPixels(src: SourceImage, crop: CropRect) {
@@ -211,176 +190,22 @@ export interface GenerateInput {
 }
 
 /**
- * Downsamples the image with area-average pooling, then maps every cell to the
- * nearest bead colour that exists in the supplied (inventory) palette.
+ * DOM half of the pipeline: rasterises the placed crop region at k× the
+ * destination cell size and returns the raw RGBA samples. Everything after this
+ * is pure math (see patternEngine.ts) and can run in a worker.
  */
-export function generatePattern(input: GenerateInput): Pattern {
-  const { src, crop, adjustments, width, height, settings, palette } = input;
-  if (palette.length === 0) {
-    throw new Error('Your inventory is empty. Select at least one bead colour.');
-  }
+export function extractRegion(input: GenerateInput): RegionData {
+  const { src, crop, width, height, settings } = input;
   const p = computePlacement(src, crop, width, height, settings.fit);
-
-  // Supersample factor: render the region at k× the destination size, then box-average.
+  // Supersample factor: render the region at k× the destination size, then pool.
   const k = Math.max(1, Math.min(8, Math.ceil(Math.max(p.sw / p.dw, p.sh / p.dh))));
   const rw = p.dw * k;
   const rh = p.dh * k;
-  const dominant = settings.sampling === 'dominant';
   const { ctx } = createCanvas(rw, rh);
   // Majority voting needs unblended source pixels; averaging benefits from smoothing.
-  ctx.imageSmoothingEnabled = !dominant;
+  ctx.imageSmoothingEnabled = settings.sampling !== 'dominant';
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(src.element, p.sx, p.sy, p.sw, p.sh, 0, 0, rw, rh);
-  const raw = ctx.getImageData(0, 0, rw, rh).data;
-  applyAdjustments(raw, adjustments);
-
-  // Average pooling (alpha-weighted) into float buffers.
-  const count = width * height;
-  const rBuf = new Float32Array(count);
-  const gBuf = new Float32Array(count);
-  const bBuf = new Float32Array(count);
-  const empty = new Uint8Array(count);
-  empty.fill(settings.transparentAsEmpty ? 1 : 0);
-  if (!settings.transparentAsEmpty) {
-    rBuf.fill(255);
-    gBuf.fill(255);
-    bBuf.fill(255);
-  }
-
-  const blockArea = k * k;
-  for (let cy = 0; cy < p.dh; cy++) {
-    for (let cx = 0; cx < p.dw; cx++) {
-      let sr = 0;
-      let sg = 0;
-      let sb = 0;
-      let sa = 0;
-      for (let yy = 0; yy < k; yy++) {
-        let idx = ((cy * k + yy) * rw + cx * k) * 4;
-        for (let xx = 0; xx < k; xx++) {
-          const a = raw[idx + 3] / 255;
-          sr += raw[idx] * a;
-          sg += raw[idx + 1] * a;
-          sb += raw[idx + 2] * a;
-          sa += a;
-          idx += 4;
-        }
-      }
-      const out = (cy + p.dy) * width + (cx + p.dx);
-      const coverage = sa / blockArea;
-      if (settings.transparentAsEmpty) {
-        if (coverage < 0.5) {
-          empty[out] = 1;
-          continue;
-        }
-        empty[out] = 0;
-        rBuf[out] = sr / sa;
-        gBuf[out] = sg / sa;
-        bBuf[out] = sb / sa;
-      } else {
-        // Composite over white.
-        const white = (1 - coverage) * 255;
-        rBuf[out] = sr / blockArea + white;
-        gBuf[out] = sg / blockArea + white;
-        bBuf[out] = sb / blockArea + white;
-        empty[out] = 0;
-      }
-    }
-  }
-
-  const quantizeWith = (pal: BeadColor[]): (string | null)[] => {
-    const matcher = createMatcher(pal, settings.distance);
-    const r = Float32Array.from(rBuf);
-    const g = Float32Array.from(gBuf);
-    const b = Float32Array.from(bBuf);
-    const cells: (string | null)[] = new Array(count).fill(null);
-    const dither = settings.dither === 'floyd-steinberg';
-    const spread = (i: number, er: number, eg: number, eb: number, f: number) => {
-      if (empty[i]) return;
-      r[i] += er * f;
-      g[i] += eg * f;
-      b[i] += eb * f;
-    };
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const i = y * width + x;
-        if (empty[i]) continue;
-        const cr = r[i] < 0 ? 0 : r[i] > 255 ? 255 : r[i];
-        const cg = g[i] < 0 ? 0 : g[i] > 255 ? 255 : g[i];
-        const cb = b[i] < 0 ? 0 : b[i] > 255 ? 255 : b[i];
-        const bead = matcher(cr, cg, cb);
-        cells[i] = bead.id;
-        if (dither) {
-          const er = cr - bead.rgb.r;
-          const eg = cg - bead.rgb.g;
-          const eb = cb - bead.rgb.b;
-          if (x + 1 < width) spread(i + 1, er, eg, eb, 7 / 16);
-          if (y + 1 < height) {
-            if (x > 0) spread(i + width - 1, er, eg, eb, 3 / 16);
-            spread(i + width, er, eg, eb, 5 / 16);
-            if (x + 1 < width) spread(i + width + 1, er, eg, eb, 1 / 16);
-          }
-        }
-      }
-    }
-    return cells;
-  };
-
-  /** Majority vote of the palette colour of every sub-sample in each cell. */
-  const dominantWith = (pal: BeadColor[]): (string | null)[] => {
-    const matcher = createMatcher(pal, settings.distance);
-    const cells: (string | null)[] = new Array(count).fill(null);
-    const votes = new Map<string, number>();
-    for (let cy = 0; cy < p.dh; cy++) {
-      for (let cx = 0; cx < p.dw; cx++) {
-        const out = (cy + p.dy) * width + (cx + p.dx);
-        if (empty[out]) continue;
-        votes.clear();
-        let best: string | null = null;
-        let bestVotes = 0;
-        for (let yy = 0; yy < k; yy++) {
-          let idx = ((cy * k + yy) * rw + cx * k) * 4;
-          for (let xx = 0; xx < k; xx++, idx += 4) {
-            const a = raw[idx + 3] / 255;
-            let r = raw[idx];
-            let g = raw[idx + 1];
-            let b = raw[idx + 2];
-            if (settings.transparentAsEmpty) {
-              if (a < 0.5) continue;
-            } else {
-              // Composite over white.
-              const white = (1 - a) * 255;
-              r = r * a + white;
-              g = g * a + white;
-              b = b * a + white;
-            }
-            const id = matcher(r, g, b).id;
-            const n = (votes.get(id) ?? 0) + 1;
-            votes.set(id, n);
-            if (n > bestVotes) {
-              bestVotes = n;
-              best = id;
-            }
-          }
-        }
-        cells[out] = best;
-      }
-    }
-    return cells;
-  };
-
-  const run = dominant ? dominantWith : quantizeWith;
-  let cells = run(palette);
-
-  if (settings.maxColors > 0) {
-    const counts = new Map<string, number>();
-    for (const id of cells) if (id) counts.set(id, (counts.get(id) ?? 0) + 1);
-    if (counts.size > settings.maxColors) {
-      const keep = new Set(
-        [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, settings.maxColors).map(([id]) => id),
-      );
-      cells = run(palette.filter((c) => keep.has(c.id)));
-    }
-  }
-
-  return { width, height, cells, createdAt: Date.now(), edited: false };
+  const data = ctx.getImageData(0, 0, rw, rh).data;
+  return { data, rw, rh, k, dx: p.dx, dy: p.dy, dw: p.dw, dh: p.dh };
 }

@@ -20,9 +20,9 @@ function Logo() {
       <div className="leading-none">
         <span className="font-display text-2xl font-bold tracking-tight">
           <span className="bg-gradient-to-r from-brand-600 to-violet-600 bg-clip-text text-transparent">Bead</span>
-          <span className="text-slate-800">ify</span>
+          <span className="text-ink">ify</span>
         </span>
-        <span className="hidden text-[11px] font-bold text-slate-400 sm:block">Pixels → Perler patterns</span>
+        <span className="hidden text-[11px] font-bold text-ink-subtle sm:block">Pixels → Perler patterns</span>
       </div>
     </div>
   );
@@ -69,12 +69,12 @@ export default function Header() {
                       ? 'bg-gradient-to-r from-brand-500 to-violet-500 text-white shadow-pop'
                       : disabled
                         ? 'cursor-not-allowed text-slate-300'
-                        : 'text-slate-600 hover:bg-white hover:shadow-soft'
+                        : 'text-ink-muted hover:bg-white hover:shadow-soft'
                   }`}
                 >
                   <span
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] ${
-                      active ? 'bg-white/25' : done ? 'bg-emerald-100 text-emerald-600' : disabled ? 'bg-slate-100' : 'bg-brand-50 text-brand-600'
+                      active ? 'bg-white/25' : done ? 'bg-emerald-100 text-emerald-600' : disabled ? 'bg-surface-sunken' : 'bg-brand-50 text-brand-600'
                     }`}
                   >
                     {done ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}

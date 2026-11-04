@@ -20,9 +20,32 @@ Everything runs in the browser. Images never leave the device.
    - Hover tooltip with bead name, code, symbol and coordinates.
    - Shopping list sorted by quantity, family or code. Click a row to highlight that colour on the grid. Copy to clipboard.
    - Stats (beads, colours, pegboards, build time) and ironing tips.
-   - Exports: high-res PNG with axes and legend, a multi-page A4 PDF (overview, legend, one page per 29×29 board), and a print layout.
+   - Exports: PNG with a choice of resolution, vector SVG, a multi-page PDF (A4 or US Letter: overview, legend, one page per 29×29 board), and a print layout.
+   - Keyboard editing: focus the grid, use the arrow keys to move, and press Enter to apply the active tool.
 
 The current project autosaves locally and is restored on reload.
+
+## Architecture notes
+
+- **Off-main-thread conversion.** `src/lib/imageProcessing.ts` rasterises the crop (DOM).
+  The pure `src/lib/patternEngine.ts` (linear-light pooling, CIEDE2000 matching, dithering)
+  runs in `src/workers/pattern.worker.ts` through `src/lib/patternClient.ts`, which transfers
+  buffers, drops stale preview requests and falls back to synchronous processing.
+- **Design tokens.** Semantic colours (`ink`, `surface`, `line`, `inverse`) are CSS variables
+  mapped in `tailwind.config.js`. The app honours `prefers-reduced-motion` and has an `ErrorBoundary`
+  around each step.
+- **Export engine.** PDF, SVG and print share tiling, symbols and `PAGE_SIZES`
+  (`src/lib/pageGeometry.ts`). jsPDF is lazy-loaded.
+
+## Project skills
+
+`.claude/skills/` contains three Claude Code skills that encode this project's conventions:
+
+| Skill | Scope |
+| --- | --- |
+| `canvas-image-processing` | Image pipeline, workers, colour science, canvas limits |
+| `react-tailwind-design-system` | Tokens, layout, accessibility, motion, React patterns |
+| `export-print-engine` | PNG / SVG / PDF / print output and pagination |
 
 ## Development
 
@@ -43,8 +66,9 @@ src/
   context/      AppContext (project state, inventory, history) and ToastContext
   data/         Bead palettes, board presets, sample images
   hooks/        localStorage persistence
-  lib/          color science (CIEDE2000), image processing, quantization, pattern utils, PNG/PDF export
+  lib/          color science (CIEDE2000), image processing, pattern engine, quantization, PNG/SVG/PDF export
   steps/        The four wizard steps
+  workers/      Pattern conversion Web Worker
 ```
 
 Bead hex values are approximations of real bead colours. Actual colours vary by production batch.

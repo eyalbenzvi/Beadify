@@ -2,14 +2,14 @@ import type { ColorUsage, Pattern } from '../types';
 import { contrastText, hexToRgb } from './color';
 import { boardsNeeded, columnLabel, PEGBOARD_SIZE, totalBeads } from './pattern';
 import { drawPatternThumbnail, safeFilename } from './render';
+import { PAGE_MARGIN, PAGE_SIZES, type PageSizeId } from './pageGeometry';
 
-const PAGE_W = 210;
-const PAGE_H = 297;
-const MARGIN = 12;
+const MARGIN = PAGE_MARGIN;
 
 export interface PdfOptions {
   title: string;
   showSymbols: boolean;
+  pageSize: PageSizeId;
 }
 
 /** Splits the pattern into pegboard-aligned tiles. */
@@ -24,12 +24,15 @@ export function computeTiles(width: number, height: number, tile = PEGBOARD_SIZE
 }
 
 /**
- * Builds a multi-page A4 PDF: an overview page with the colour legend, then one
+ * Builds a multi-page A4 / Letter PDF: an overview page with the colour legend, then one
  * crisp vector page per 29 × 29 pegboard section with coordinates and symbols.
  */
 export async function exportPatternPdf(pattern: Pattern, usage: ColorUsage[], opts: PdfOptions): Promise<void> {
   const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+  const paper = PAGE_SIZES[opts.pageSize];
+  const PAGE_W = paper.width;
+  const PAGE_H = paper.height;
+  const doc = new jsPDF({ unit: 'mm', format: paper.jspdf, orientation: 'portrait', compress: true });
   const symbols = new Map(usage.map((u) => [u.color.id, u]));
   const boards = boardsNeeded(pattern.width, pattern.height);
   const beads = totalBeads(pattern);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import type { ColorUsage, ViewPreferences } from '../types';
 import { BEAD_BY_ID } from '../data/beadColors';
 import { columnLabel, PEGBOARD_SIZE } from '../lib/pattern';
@@ -63,6 +63,8 @@ export default function PatternCanvas({
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [focusCell, setFocusCell] = useState<{ x: number; y: number } | null>(null);
+  const [hasFocus, setHasFocus] = useState(false);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<
     | { kind: 'pan'; startX: number; startY: number; start: Viewport }
@@ -190,6 +192,16 @@ export default function PatternCanvas({
     ctx.lineWidth = 1.5;
     ctx.strokeRect(gx, gy, width * s, height * s);
 
+    // Keyboard cursor
+    if (hasFocus && focusCell) {
+      ctx.strokeStyle = '#DB2777';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(gx + focusCell.x * s - 1.5, gy + focusCell.y * s - 1.5, s + 3, s + 3);
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(gx + focusCell.x * s + 0.5, gy + focusCell.y * s + 0.5, s - 1, s - 1);
+    }
+
     // Rulers
     ctx.fillStyle = 'rgba(255,255,255,0.96)';
     ctx.fillRect(0, 0, size.w, RULER);
@@ -228,7 +240,7 @@ export default function PatternCanvas({
     ctx.restore();
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, RULER, RULER);
-  }, [cells, width, height, usage, view, viewport, size, highlightId]);
+  }, [cells, width, height, usage, view, viewport, size, highlightId, hasFocus, focusCell]);
 
   const cellAt = useCallback(
     (clientX: number, clientY: number): CellEvent | null => {
@@ -351,6 +363,54 @@ export default function PatternCanvas({
     if (e.pointerType !== 'mouse') onHover(null);
   };
 
+  /** Client coordinates of a cell's centre (used to anchor popovers for keyboard actions). */
+  const cellCenter = (x: number, y: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const { scale: sc, ox, oy } = viewportRef.current;
+    return {
+      clientX: (rect?.left ?? 0) + RULER + ox + (x + 0.5) * sc,
+      clientY: (rect?.top ?? 0) + RULER + oy + (y + 0.5) * sc,
+    };
+  };
+
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLCanvasElement>) => {
+    const moves: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+    };
+    const cur = focusCell ?? { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+    const m = moves[e.key];
+    if (m) {
+      e.preventDefault();
+      const step = e.shiftKey ? 5 : 1;
+      const next = {
+        x: Math.max(0, Math.min(width - 1, cur.x + m[0] * step)),
+        y: Math.max(0, Math.min(height - 1, cur.y + m[1] * step)),
+      };
+      setFocusCell(next);
+      // Keep the cursor in view.
+      const v = viewportRef.current;
+      const vw = size.w - RULER;
+      const vh = size.h - RULER;
+      let { ox, oy } = v;
+      if (next.x * v.scale + ox < 0) ox = -next.x * v.scale + v.scale;
+      if ((next.x + 1) * v.scale + ox > vw) ox = vw - (next.x + 2) * v.scale;
+      if (next.y * v.scale + oy < 0) oy = -next.y * v.scale + v.scale;
+      if ((next.y + 1) * v.scale + oy > vh) oy = vh - (next.y + 2) * v.scale;
+      if (ox !== v.ox || oy !== v.oy) onViewportChange({ ...v, ox, oy });
+      onHover({ ...next, ...cellCenter(next.x, next.y) });
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setFocusCell(cur);
+      onCellDown({ ...cur, ...cellCenter(cur.x, cur.y) });
+      onCellUp();
+    }
+  };
+
   return (
     <div ref={wrapRef} className="relative h-full w-full overflow-hidden">
       <canvas
@@ -365,8 +425,18 @@ export default function PatternCanvas({
           if (e.pointerType === 'mouse' && !gesture.current) onHover(null);
         }}
         onContextMenu={(e) => e.preventDefault()}
-        role="img"
-        aria-label={`Bead pattern grid, ${width} by ${height}`}
+        role="application"
+        tabIndex={0}
+        aria-label={`Bead pattern grid, ${width} by ${height}. Use arrow keys to move, Enter to apply the current tool.`}
+        onKeyDown={onKeyDown}
+        onFocus={() => {
+          setHasFocus(true);
+          if (!focusCell) setFocusCell({ x: Math.floor(width / 2), y: Math.floor(height / 2) });
+        }}
+        onBlur={() => {
+          setHasFocus(false);
+          onHover(null);
+        }}
       />
     </div>
   );

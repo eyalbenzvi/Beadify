@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Grid2x2, LayoutGrid, Settings2, Sparkles, Wand2 } from 'lucide-react';
 import type { ConversionSettings, Pattern } from '../types';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { BOARD_PRESETS, MAX_GRID, MIN_GRID } from '../data/boards';
 import { BASIC_24 } from '../data/beadColors';
-import { generatePattern, renderAdjustedCrop } from '../lib/imageProcessing';
+import { renderAdjustedCrop } from '../lib/imageProcessing';
+import { createLatestPatternRequester, requestPattern } from '../lib/patternClient';
 import { boardsNeeded, computeUsage, totalBeads } from '../lib/pattern';
 import { drawPatternThumbnail } from '../lib/render';
 import InventoryManager from '../components/InventoryManager';
@@ -27,27 +28,35 @@ export default function InventoryStep() {
   const [customW, setCustomW] = useState(String(board.width));
   const [customH, setCustomH] = useState(String(board.height));
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const requestPreview = useMemo(() => createLatestPatternRequester(), []);
 
-  // Debounced live preview of the conversion.
+  // Debounced live preview, computed in a Web Worker. Only the latest request resolves.
   useEffect(() => {
     if (!source || palette.length === 0) {
       setPreview(null);
       return;
     }
+    let cancelled = false;
     setComputing(true);
     const handle = window.setTimeout(() => {
-      try {
-        const p = generatePattern({ src: source, crop, adjustments, width: board.width, height: board.height, settings, palette });
-        setPreview(p);
-        setPreviewError(null);
-      } catch (err) {
-        setPreviewError(err instanceof Error ? err.message : 'Preview failed.');
-      } finally {
-        setComputing(false);
-      }
-    }, 250);
-    return () => window.clearTimeout(handle);
-  }, [source, crop, adjustments, board.width, board.height, settings, palette]);
+      requestPreview({ src: source, crop, adjustments, width: board.width, height: board.height, settings, palette })
+        .then((p) => {
+          if (cancelled) return;
+          setPreview(p);
+          setPreviewError(null);
+        })
+        .catch((err: unknown) => {
+          if (!cancelled) setPreviewError(err instanceof Error ? err.message : 'Preview failed.');
+        })
+        .finally(() => {
+          if (!cancelled) setComputing(false);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [requestPreview, source, crop, adjustments, board.width, board.height, settings, palette]);
 
   useEffect(() => {
     if (preview && canvasRef.current) drawPatternThumbnail(canvasRef.current, preview, 8);
@@ -66,7 +75,7 @@ export default function InventoryStep() {
     setBoard({ preset: 'custom', width: w, height: h });
   };
 
-  const generate = () => {
+  const generate = async () => {
     if (palette.length === 0) {
       toast.error('Your inventory is empty', 'Select at least one bead colour to generate a pattern.');
       return;
@@ -75,20 +84,17 @@ export default function InventoryStep() {
       return;
     }
     setGenerating(true);
-    // Yield to the browser so the spinner paints before the heavy work.
-    window.setTimeout(() => {
-      try {
-        const p = generatePattern({ src: source, crop, adjustments, width: board.width, height: board.height, settings, palette });
-        const colors = computeUsage(p).length;
-        setPattern(p);
-        toast.success('Pattern generated successfully!', `${p.width} × ${p.height} grid using ${colors} colour${colors === 1 ? '' : 's'}.`);
-        setStep(4);
-      } catch (err) {
-        toast.error('Pattern generation failed', err instanceof Error ? err.message : undefined);
-      } finally {
-        setGenerating(false);
-      }
-    }, 30);
+    try {
+      const p = await requestPattern({ src: source, crop, adjustments, width: board.width, height: board.height, settings, palette });
+      const colors = computeUsage(p).length;
+      setPattern(p);
+      toast.success('Pattern generated successfully!', `${p.width} × ${p.height} grid using ${colors} colour${colors === 1 ? '' : 's'}.`);
+      setStep(4);
+    } catch (err) {
+      toast.error('Pattern generation failed', err instanceof Error ? err.message : undefined);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const boards = boardsNeeded(board.width, board.height);
@@ -113,16 +119,16 @@ export default function InventoryStep() {
                   }}
                   aria-pressed={active}
                   className={`rounded-2xl border p-2.5 text-left transition ${
-                    active ? 'border-brand-400 bg-brand-50 shadow-sm' : 'border-slate-100 bg-white hover:border-brand-200'
+                    active ? 'border-brand-400 bg-brand-50 shadow-sm' : 'border-line-soft bg-white hover:border-brand-200'
                   }`}
                 >
-                  <span className="block text-sm font-extrabold text-slate-700">{b.label}</span>
-                  <span className="block text-xs text-slate-500">{b.description}</span>
+                  <span className="block text-sm font-extrabold text-ink-soft">{b.label}</span>
+                  <span className="block text-xs text-ink-subtle">{b.description}</span>
                 </button>
               );
             })}
           </div>
-          <div className={`mt-3 rounded-2xl border p-3 ${board.preset === 'custom' ? 'border-brand-400 bg-brand-50' : 'border-slate-100'}`}>
+          <div className={`mt-3 rounded-2xl border p-3 ${board.preset === 'custom' ? 'border-brand-400 bg-brand-50' : 'border-line-soft'}`}>
             <p className="label mb-2">Custom grid ({MIN_GRID}–{MAX_GRID})</p>
             <form
               className="flex items-center gap-2"
@@ -141,7 +147,7 @@ export default function InventoryStep() {
                 onChange={(e) => setCustomW(e.target.value)}
                 aria-label="Custom width in beads"
               />
-              <span className="font-bold text-slate-400">×</span>
+              <span className="font-bold text-ink-subtle">×</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -157,7 +163,7 @@ export default function InventoryStep() {
               </button>
             </form>
           </div>
-          <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+          <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-ink-subtle">
             <Grid2x2 className="h-4 w-4" />
             {board.width} × {board.height} = {(board.width * board.height).toLocaleString()} pegs · {boards.total} board
             {boards.total === 1 ? '' : 's'} ({boards.across} × {boards.down})
@@ -260,8 +266,8 @@ export default function InventoryStep() {
               {palette.length === 0 ? (
                 <div className="flex max-w-xs flex-col items-center gap-3 p-6 text-center">
                   <AlertTriangle className="h-10 w-10 text-amber-500" />
-                  <p className="font-bold text-slate-700">Your inventory is empty</p>
-                  <p className="text-sm text-slate-500">Pick the bead colours you own below, or start with a basic set.</p>
+                  <p className="font-bold text-ink-soft">Your inventory is empty</p>
+                  <p className="text-sm text-ink-subtle">Pick the bead colours you own below, or start with a basic set.</p>
                   <button
                     type="button"
                     className="btn-primary"
@@ -284,7 +290,7 @@ export default function InventoryStep() {
                     aria-label="Pattern preview"
                   />
                   {computing && (
-                    <div className="absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-500 shadow">
+                    <div className="absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-subtle shadow">
                       Updating…
                     </div>
                   )}
@@ -292,16 +298,16 @@ export default function InventoryStep() {
               )}
             </div>
             <div className="flex flex-col gap-3">
-              <div className="rounded-2xl bg-slate-50 p-3">
+              <div className="rounded-2xl bg-surface-muted p-3">
                 <p className="label mb-2">Your crop</p>
                 <CropThumb />
               </div>
-              <p className="text-xs leading-relaxed text-slate-500">
+              <p className="text-xs leading-relaxed text-ink-subtle">
                 Colours are matched strictly to your <b>{palette.length}</b> owned colours. Missing shades are replaced with the
                 closest bead you have.
               </p>
               <div className="mt-auto flex flex-col gap-2">
-                <button type="button" className="btn-primary w-full py-3" disabled={generating || palette.length === 0} onClick={generate}>
+                <button type="button" className="btn-primary w-full py-3" disabled={generating || palette.length === 0} onClick={() => void generate()}>
                   {generating ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Generating…

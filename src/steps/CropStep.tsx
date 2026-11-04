@@ -99,7 +99,7 @@ export default function CropStep() {
                 className={`chip ${
                   cropAspect === a.id
                     ? 'border-brand-400 bg-brand-500 text-white'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200'
+                    : 'border-line bg-white text-ink-muted hover:border-brand-200'
                 }`}
               >
                 {a.label}
@@ -172,7 +172,7 @@ export default function CropStep() {
             />
             <Slider
               label="Contrast"
-              icon={<Contrast className="h-4 w-4 text-slate-500" />}
+              icon={<Contrast className="h-4 w-4 text-ink-subtle" />}
               value={adjustments.contrast}
               min={-100}
               max={100}

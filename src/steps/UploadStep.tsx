@@ -73,14 +73,14 @@ export default function UploadStep() {
         <p className="mx-auto mb-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-extrabold text-brand-600 shadow-soft">
           <Sparkles className="h-3.5 w-3.5" /> Turn any picture into a fuse bead pattern
         </p>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-slate-800 sm:text-5xl">
+        <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-5xl">
           From photo to{' '}
           <span className="bg-gradient-to-r from-brand-500 via-violet-500 to-sky-500 bg-clip-text text-transparent">
             pegboard
           </span>{' '}
           in seconds
         </h1>
-        <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500 sm:text-base">
+        <p className="mx-auto mt-3 max-w-2xl text-sm text-ink-subtle sm:text-base">
           Upload an image, crop it, pick the beads you actually own, and get a printable pattern with a complete
           shopping list.
         </p>
@@ -100,7 +100,7 @@ export default function UploadStep() {
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           className={`flex flex-col items-center justify-center rounded-3xl border-2 border-dashed px-4 py-10 text-center transition sm:py-14 ${
-            dragging ? 'scale-[1.01] border-brand-400 bg-brand-50' : 'border-slate-200 bg-slate-50/60'
+            dragging ? 'scale-[1.01] border-brand-400 bg-brand-50' : 'border-line bg-surface-muted/60'
           }`}
         >
           <span
@@ -110,10 +110,10 @@ export default function UploadStep() {
           >
             <UploadCloud className="h-8 w-8" />
           </span>
-          <p className="font-display text-xl font-semibold text-slate-700">
+          <p className="font-display text-xl font-semibold text-ink-soft">
             {dragging ? 'Drop it like it’s hot!' : 'Drag & drop an image here'}
           </p>
-          <p className="mt-1 text-sm text-slate-500">PNG, JPEG or WebP · up to 25 MB</p>
+          <p className="mt-1 text-sm text-ink-subtle">PNG, JPEG or WebP · up to 25 MB</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <button type="button" className="btn-primary" onClick={() => fileInput.current?.click()}>
               <FolderOpen className="h-4 w-4" /> Choose file
@@ -163,7 +163,7 @@ export default function UploadStep() {
               key={p.id}
               type="button"
               onClick={() => void handlePreset(p.id)}
-              className="group overflow-hidden rounded-2xl border border-slate-100 bg-white text-left transition hover:-translate-y-1 hover:border-brand-200 hover:shadow-pop focus-visible:-translate-y-1"
+              className="group overflow-hidden rounded-2xl border border-line-soft bg-white text-left transition hover:-translate-y-1 hover:border-brand-200 hover:shadow-pop focus-visible:-translate-y-1"
             >
               <div className="checkerboard aspect-square overflow-hidden">
                 {thumbs[p.id] && (
@@ -176,8 +176,8 @@ export default function UploadStep() {
                 )}
               </div>
               <div className="p-2.5">
-                <p className="text-sm font-extrabold text-slate-700">{p.name}</p>
-                <p className="truncate text-xs text-slate-400">{p.description}</p>
+                <p className="text-sm font-extrabold text-ink-soft">{p.name}</p>
+                <p className="truncate text-xs text-ink-subtle">{p.description}</p>
               </div>
             </button>
           ))}

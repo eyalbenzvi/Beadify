@@ -14,6 +14,7 @@ import {
   MousePointer2,
   PaintBucket,
   Paintbrush,
+  PenTool,
   Pipette,
   Printer,
   Redo2,
@@ -30,11 +31,13 @@ import PatternCanvas, { clampScale, RULER, type CellEvent, type Viewport } from 
 import ColorPickerPopover from '../components/ColorPickerPopover';
 import ShoppingList, { AssemblyTips, StatsSummary } from '../components/ShoppingList';
 import PrintView from '../components/PrintView';
-import { BeadSwatch, SectionTitle, Toggle } from '../components/ui';
+import { BeadSwatch, SectionTitle, Segmented, Toggle } from '../components/ui';
 import { cellLabel, computeUsage, floodFill, replaceColor, symbolMap } from '../lib/pattern';
 import { remapCells } from '../lib/quantize';
 import { downloadCanvas, renderPatternExport, safeFilename } from '../lib/render';
 import { exportPatternPdf } from '../lib/exportPdf';
+import { exportPatternSvg } from '../lib/exportSvg';
+import { PAGE_SIZES } from '../lib/pageGeometry';
 
 type Tool = 'select' | 'paint' | 'erase' | 'fill' | 'eyedropper' | 'pan';
 
@@ -263,11 +266,16 @@ export default function EditorStep() {
     if (!printing) return;
     const done = () => setPrinting(false);
     window.addEventListener('afterprint', done);
-    const t = window.setTimeout(() => {
-      window.print();
-      setExporting(null);
-    }, 300);
+    // Wait for the print DOM to mount and paint (two frames + a beat for the overview image).
+    let t = 0;
+    const raf = requestAnimationFrame(() => {
+      t = window.setTimeout(() => {
+        window.print();
+        setExporting(null);
+      }, 150);
+    });
     return () => {
+      cancelAnimationFrame(raf);
       window.clearTimeout(t);
       window.removeEventListener('afterprint', done);
     };
@@ -281,10 +289,11 @@ export default function EditorStep() {
     try {
       const canvas = renderPatternExport(pattern, usage, {
         showSymbols: view.showSymbols,
-        showGrid: true,
+        showGrid: view.showGrid,
         beadStyle: view.beadStyle,
         title,
         includeLegend: true,
+        cellPx: view.pngCellPx,
       });
       await downloadCanvas(canvas, `${safeFilename(title)}.png`);
       toast.success('PNG downloaded', `${canvas.width} × ${canvas.height}px high-resolution image.`);
@@ -299,12 +308,21 @@ export default function EditorStep() {
     setExporting('pdf');
     await new Promise((r) => setTimeout(r, 30));
     try {
-      await exportPatternPdf(pattern, usage, { title, showSymbols: view.showSymbols });
-      toast.success('PDF downloaded', 'Overview, legend and one page per pegboard.');
+      await exportPatternPdf(pattern, usage, { title, showSymbols: view.showSymbols, pageSize: view.pageSize });
+      toast.success('PDF downloaded', `${PAGE_SIZES[view.pageSize].label} · overview, legend and one page per pegboard.`);
     } catch (err) {
       toast.error('PDF export failed', err instanceof Error ? err.message : undefined);
     } finally {
       setExporting(null);
+    }
+  };
+
+  const exportSvg = () => {
+    try {
+      exportPatternSvg(pattern, usage, { title, showSymbols: view.showSymbols, showGrid: view.showGrid });
+      toast.success('SVG downloaded', 'Infinitely scalable vector pattern.');
+    } catch (err) {
+      toast.error('SVG export failed', err instanceof Error ? err.message : undefined);
     }
   };
 
@@ -340,8 +358,8 @@ export default function EditorStep() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="card flex min-w-0 flex-col overflow-hidden">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 p-2.5 sm:p-3">
-            <div className="flex gap-1 rounded-2xl bg-slate-100 p-1" role="toolbar" aria-label="Editing tools">
+          <div className="flex flex-wrap items-center gap-2 border-b border-line-soft p-2.5 sm:p-3">
+            <div className="flex gap-1 rounded-2xl bg-surface-sunken p-1" role="toolbar" aria-label="Editing tools">
               {TOOLS.map((t) => (
                 <button
                   key={t.id}
@@ -351,7 +369,7 @@ export default function EditorStep() {
                   aria-label={t.label}
                   aria-pressed={tool === t.id}
                   className={`flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-xs font-bold transition ${
-                    tool === t.id ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    tool === t.id ? 'bg-white text-brand-600 shadow-sm' : 'text-ink-subtle hover:text-ink-soft'
                   }`}
                 >
                   {t.icon}
@@ -371,7 +389,7 @@ export default function EditorStep() {
               <button type="button" className="btn-icon" onClick={() => zoomBy(0.8)} title="Zoom out (-)" aria-label="Zoom out">
                 <ZoomOut className="h-4 w-4" />
               </button>
-              <span className="w-12 text-center text-xs font-extrabold tabular-nums text-slate-500">{Math.round(viewport.scale * 6.25)}%</span>
+              <span className="w-12 text-center text-xs font-extrabold tabular-nums text-ink-subtle">{Math.round(viewport.scale * 6.25)}%</span>
               <button type="button" className="btn-icon" onClick={() => zoomBy(1.25)} title="Zoom in (+)" aria-label="Zoom in">
                 <ZoomIn className="h-4 w-4" />
               </button>
@@ -443,7 +461,7 @@ export default function EditorStep() {
             />
             {hover && !picker && (
               <div
-                className="pointer-events-none fixed z-30 rounded-xl bg-slate-900/90 px-2.5 py-1.5 text-xs text-white shadow-lg"
+                className="pointer-events-none fixed z-30 rounded-xl bg-inverse/90 px-2.5 py-1.5 text-xs text-white shadow-lg"
                 style={{ left: hover.clientX + 14, top: hover.clientY + 14 }}
               >
                 <p className="font-extrabold">
@@ -463,7 +481,7 @@ export default function EditorStep() {
               <button
                 type="button"
                 onClick={() => setHighlightId(null)}
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900/85 px-3 py-1.5 text-xs font-bold text-white shadow-lg"
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-inverse/85 px-3 py-1.5 text-xs font-bold text-white shadow-lg"
               >
                 Highlighting {BEAD_BY_ID.get(highlightId)?.name} — tap to clear
               </button>
@@ -471,17 +489,17 @@ export default function EditorStep() {
           </div>
 
           {/* Active colour palette */}
-          <div className="border-t border-slate-100 p-3">
+          <div className="border-t border-line-soft p-3">
             <div className="mb-2 flex items-center gap-2">
               <span className="label">Active colour</span>
               {active ? (
-                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                <span className="flex items-center gap-1.5 text-xs font-bold text-ink-muted">
                   <BeadSwatch hex={active.hex} size={16} /> {active.code} {active.name}
                 </span>
               ) : (
-                <span className="text-xs font-bold text-slate-400">none</span>
+                <span className="text-xs font-bold text-ink-subtle">none</span>
               )}
-              <span className="ml-auto hidden text-xs text-slate-400 sm:inline">{TOOLS.find((t) => t.id === tool)?.hint}</span>
+              <span className="ml-auto hidden text-xs text-ink-subtle sm:inline">{TOOLS.find((t) => t.id === tool)?.hint}</span>
             </div>
             <div className="scrollbar-thin flex gap-1 overflow-x-auto pb-1">
               {[...usage.filter((u) => inventory.has(u.color.id)).map((u) => u.color), ...palette.filter((c) => !usageMap.has(c.id))].map((c) => (
@@ -521,6 +539,38 @@ export default function EditorStep() {
                 onChange={viewToggle('showSymbols')}
               />
             </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div>
+                <p className="label mb-1.5">Paper</p>
+                <Segmented
+                  ariaLabel="Paper size"
+                  size="sm"
+                  value={view.pageSize}
+                  onChange={(v) => setView((p) => ({ ...p, pageSize: v }))}
+                  options={[
+                    { value: 'a4', label: 'A4' },
+                    { value: 'letter', label: 'Letter' },
+                  ]}
+                />
+              </div>
+              <div>
+                <label htmlFor="png-res" className="label mb-1.5 block">
+                  PNG size
+                </label>
+                <select
+                  id="png-res"
+                  className="input py-1.5"
+                  value={view.pngCellPx}
+                  onChange={(e) => setView((p) => ({ ...p, pngCellPx: Number(e.target.value) }))}
+                >
+                  <option value={0}>Auto (max)</option>
+                  <option value={12}>Small · 12 px</option>
+                  <option value={20}>Medium · 20 px</option>
+                  <option value={32}>Large · 32 px</option>
+                  <option value={48}>Huge · 48 px</option>
+                </select>
+              </div>
+            </div>
             <div className="mt-4 grid gap-2">
               <button type="button" className="btn-primary w-full" disabled={exporting !== null} onClick={() => void exportPdf()}>
                 {exporting === 'pdf' ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <FileText className="h-4 w-4" />}
@@ -529,6 +579,9 @@ export default function EditorStep() {
               <button type="button" className="btn-secondary w-full" disabled={exporting !== null} onClick={() => void exportPng()}>
                 {exporting === 'png' ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand-200 border-t-brand-500" /> : <Download className="h-4 w-4" />}
                 Download PNG image
+              </button>
+              <button type="button" className="btn-secondary w-full" disabled={exporting !== null} onClick={exportSvg}>
+                <PenTool className="h-4 w-4" /> Download SVG (vector)
               </button>
               <button
                 type="button"
@@ -542,9 +595,9 @@ export default function EditorStep() {
                 <Printer className="h-4 w-4" /> Print pattern
               </button>
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-slate-500">
-              PDF & print include an overview, the full colour legend, and one page per 29 × 29 pegboard with A–Z / 1–N coordinates.
-              Turn on symbols for black-and-white or colour-blind friendly printouts.
+            <p className="mt-3 text-xs leading-relaxed text-ink-subtle">
+              PDF & print are vector: an overview, the full colour legend, and one page per 29 × 29 pegboard with A–Z / 1–N
+              coordinates. Turn on symbols for black-and-white or colour-blind friendly printouts.
             </p>
           </section>
 
@@ -580,7 +633,7 @@ export default function EditorStep() {
         />
       )}
 
-      {printing && <PrintView pattern={pattern} usage={usage} title={title} showSymbols={view.showSymbols} />}
+      {printing && <PrintView pattern={pattern} usage={usage} title={title} showSymbols={view.showSymbols} pageSize={view.pageSize} />}
     </div>
   );
 }

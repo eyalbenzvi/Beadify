@@ -193,7 +193,7 @@ export default function CropTool({ source, crop, onChange, aspect }: Props) {
               className={`absolute h-5 w-5 rounded-full border-[3px] border-white bg-brand-500 shadow-md sm:h-4 sm:w-4 ${handlePos[h]}`}
             />
           ))}
-          <span className="pointer-events-none absolute -top-7 left-0 whitespace-nowrap rounded-md bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-bold text-white">
+          <span className="pointer-events-none absolute -top-7 left-0 whitespace-nowrap rounded-md bg-inverse/80 px-1.5 py-0.5 text-[10px] font-bold text-white">
             {pxW} × {pxH}
           </span>
         </div>

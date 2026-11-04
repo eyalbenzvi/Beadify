@@ -102,6 +102,10 @@ export interface ViewPreferences {
   showSymbols: boolean;
   beadStyle: 'round' | 'square';
   showBoardLines: boolean;
+  /** Paper size for PDF export and printing */
+  pageSize: 'a4' | 'letter';
+  /** PNG export cell size in px; 0 = automatic (as large as fits 8000 px) */
+  pngCellPx: number;
 }
 
 export type StepId = 1 | 2 | 3 | 4;

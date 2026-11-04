@@ -80,7 +80,7 @@ export default function ShoppingList({ pattern, usage, inventory, highlightId, o
       <div className="overflow-x-auto">
         <table className="w-full min-w-[480px] text-sm">
           <thead>
-            <tr className="text-left text-xs font-extrabold uppercase tracking-wider text-slate-400">
+            <tr className="text-left text-xs font-extrabold uppercase tracking-wider text-ink-subtle">
               <th className="py-2 pr-2">Sym</th>
               <th className="py-2 pr-2">Colour</th>
               <th className="py-2 pr-2">Family</th>
@@ -96,7 +96,7 @@ export default function ShoppingList({ pattern, usage, inventory, highlightId, o
                 <tr
                   key={u.color.id}
                   onClick={() => onHighlight(active ? null : u.color.id)}
-                  className={`cursor-pointer border-t border-slate-100 transition ${active ? 'bg-brand-50' : 'hover:bg-slate-50'}`}
+                  className={`cursor-pointer border-t border-line-soft transition ${active ? 'bg-brand-50' : 'hover:bg-surface-muted'}`}
                 >
                   <td className="py-2 pr-2">
                     <span
@@ -110,22 +110,22 @@ export default function ShoppingList({ pattern, usage, inventory, highlightId, o
                     <div className="flex items-center gap-2">
                       <BeadSwatch hex={u.color.hex} size={22} />
                       <div className="min-w-0">
-                        <p className="truncate font-extrabold text-slate-700">{u.color.name}</p>
-                        <p className="text-xs font-semibold text-slate-400">
+                        <p className="truncate font-extrabold text-ink-soft">{u.color.name}</p>
+                        <p className="text-xs font-semibold text-ink-subtle">
                           {u.color.code} · {u.color.brand}
                           {missing && <span className="ml-1 text-amber-600">· not in inventory</span>}
                         </p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-2 pr-2 text-xs font-semibold text-slate-500">{u.color.family}</td>
-                  <td className="py-2 pr-2 text-right font-extrabold tabular-nums text-slate-700">{u.count.toLocaleString()}</td>
+                  <td className="py-2 pr-2 text-xs font-semibold text-ink-subtle">{u.color.family}</td>
+                  <td className="py-2 pr-2 text-right font-extrabold tabular-nums text-ink-soft">{u.count.toLocaleString()}</td>
                   <td className="py-2 pl-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-sunken">
                         <div className="h-full rounded-full" style={{ width: `${(u.count / max) * 100}%`, background: u.color.hex }} />
                       </div>
-                      <span className="w-10 text-right text-xs font-bold tabular-nums text-slate-400">
+                      <span className="w-10 text-right text-xs font-bold tabular-nums text-ink-subtle">
                         {((u.count / Math.max(1, beads)) * 100).toFixed(1)}%
                       </span>
                     </div>
@@ -135,7 +135,7 @@ export default function ShoppingList({ pattern, usage, inventory, highlightId, o
             })}
           </tbody>
           <tfoot>
-            <tr className="border-t-2 border-slate-200 font-extrabold text-slate-700">
+            <tr className="border-t-2 border-line font-extrabold text-ink-soft">
               <td colSpan={3} className="py-2">
                 Total
               </td>
@@ -187,11 +187,11 @@ export function AssemblyTips() {
               {i + 1}
             </span>
             <div>
-              <p className="flex items-center gap-1.5 text-sm font-extrabold text-slate-700">
+              <p className="flex items-center gap-1.5 text-sm font-extrabold text-ink-soft">
                 {i === 2 && <Flame className="h-4 w-4 text-orange-500" />}
                 {t.title}
               </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{t.body}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">{t.body}</p>
             </div>
           </li>
         ))}

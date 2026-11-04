@@ -68,7 +68,7 @@ export default function InventoryManager() {
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div role="tablist" aria-label="Bead brand" className="flex rounded-2xl bg-slate-100 p-1">
+        <div role="tablist" aria-label="Bead brand" className="flex rounded-2xl bg-surface-sunken p-1">
           {BRANDS.map((b) => {
             const count = BEAD_COLORS.filter((c) => c.brand === b && inventory.has(c.id)).length;
             return (
@@ -79,10 +79,10 @@ export default function InventoryManager() {
                 aria-selected={brand === b}
                 onClick={() => setBrand(b)}
                 className={`rounded-xl px-4 py-1.5 text-sm font-bold transition ${
-                  brand === b ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  brand === b ? 'bg-white text-brand-600 shadow-sm' : 'text-ink-subtle hover:text-ink-soft'
                 }`}
               >
-                {b} <span className="text-xs text-slate-400">({count})</span>
+                {b} <span className="text-xs text-ink-subtle">({count})</span>
               </button>
             );
           })}
@@ -102,7 +102,7 @@ export default function InventoryManager() {
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
           <input
             type="search"
             className="input pl-9"
@@ -114,7 +114,7 @@ export default function InventoryManager() {
           {query && (
             <button
               type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 hover:text-slate-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-ink-subtle hover:text-ink-muted"
               onClick={() => setQuery('')}
               aria-label="Clear search"
             >
@@ -122,7 +122,7 @@ export default function InventoryManager() {
             </button>
           )}
         </div>
-        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600">
+        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm font-bold text-ink-muted">
           <input
             type="checkbox"
             className="h-4 w-4 accent-pink-500"
@@ -137,7 +137,7 @@ export default function InventoryManager() {
         <button
           type="button"
           onClick={() => setFamily('All')}
-          className={`chip shrink-0 ${family === 'All' ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-200 bg-white text-slate-600'}`}
+          className={`chip shrink-0 ${family === 'All' ? 'border-inverse bg-inverse text-white' : 'border-line bg-white text-ink-muted'}`}
         >
           All ({brandColors.length})
         </button>
@@ -146,7 +146,7 @@ export default function InventoryManager() {
             key={f}
             type="button"
             onClick={() => setFamily(f)}
-            className={`chip shrink-0 ${family === f ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-200 bg-white text-slate-600'}`}
+            className={`chip shrink-0 ${family === f ? 'border-inverse bg-inverse text-white' : 'border-line bg-white text-ink-muted'}`}
           >
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: FAMILY_SWATCH[f] }} />
             {f} ({familyCounts.get(f)})
@@ -154,7 +154,7 @@ export default function InventoryManager() {
         ))}
       </div>
 
-      <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
+      <div className="mb-2 flex items-center justify-between text-xs font-bold text-ink-subtle">
         <span>
           {ownedInBrand} / {brandColors.length} {brand} colours owned · showing {visible.length}
         </span>
@@ -163,7 +163,7 @@ export default function InventoryManager() {
             <button type="button" className="text-brand-500 hover:text-brand-700" onClick={() => selectVisible(true)}>
               Select shown
             </button>
-            <button type="button" className="text-slate-400 hover:text-slate-600" onClick={() => selectVisible(false)}>
+            <button type="button" className="text-ink-subtle hover:text-ink-muted" onClick={() => selectVisible(false)}>
               Deselect shown
             </button>
           </span>
@@ -171,7 +171,7 @@ export default function InventoryManager() {
       </div>
 
       {visible.length === 0 ? (
-        <p className="rounded-2xl bg-slate-50 py-10 text-center text-sm font-semibold text-slate-400">
+        <p className="rounded-2xl bg-surface-muted py-10 text-center text-sm font-semibold text-ink-subtle">
           No colours match your filters.
         </p>
       ) : (
@@ -187,19 +187,19 @@ export default function InventoryManager() {
                   className={`flex w-full items-center gap-2.5 rounded-2xl border p-2 text-left transition active:scale-[0.98] ${
                     owned
                       ? 'border-brand-300 bg-brand-50/70 shadow-sm'
-                      : 'border-slate-100 bg-white opacity-60 grayscale-[40%] hover:opacity-100 hover:grayscale-0'
+                      : 'border-line-soft bg-white opacity-60 grayscale-[40%] hover:opacity-100 hover:grayscale-0'
                   }`}
                 >
                   <BeadSwatch hex={c.hex} size={30} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-extrabold text-slate-700">{c.name}</span>
-                    <span className="block text-[11px] font-semibold text-slate-400">
+                    <span className="block truncate text-xs font-extrabold text-ink-soft">{c.name}</span>
+                    <span className="block text-[11px] font-semibold text-ink-subtle">
                       {c.code} · {c.hex}
                     </span>
                   </span>
                   <span
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${
-                      owned ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-300'
+                      owned ? 'border-brand-500 bg-brand-500 text-white' : 'border-line-strong'
                     }`}
                   >
                     {owned && <Check className="h-3 w-3" strokeWidth={4} />}

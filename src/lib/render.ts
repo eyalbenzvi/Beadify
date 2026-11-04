@@ -76,6 +76,8 @@ export interface ExportOptions {
   beadStyle: ViewPreferences['beadStyle'];
   title: string;
   includeLegend: boolean;
+  /** Cell size in px; 0 = automatic */
+  cellPx?: number;
 }
 
 const MAX_EXPORT_SIDE = 8000;
@@ -83,7 +85,10 @@ const MAX_EXPORT_SIDE = 8000;
 /** Renders a high-resolution, self-contained pattern image with axes and legend. */
 export function renderPatternExport(pattern: Pattern, usage: ColorUsage[], opts: ExportOptions): HTMLCanvasElement {
   const { width, height } = pattern;
-  const cell = Math.max(10, Math.min(32, Math.floor(MAX_EXPORT_SIDE / (Math.max(width, height) + 4))));
+  // Never exceed MAX_EXPORT_SIDE on the longest side (browser canvas limits).
+  const maxCell = Math.floor(MAX_EXPORT_SIDE / (Math.max(width, height) + 4));
+  const wanted = opts.cellPx && opts.cellPx > 0 ? opts.cellPx : Math.min(32, maxCell);
+  const cell = Math.max(6, Math.min(wanted, maxCell));
   const axis = Math.round(cell * 1.6);
   const pad = Math.round(cell * 1.2);
   const header = Math.round(cell * 3);
@@ -217,21 +222,26 @@ export function renderPatternExport(pattern: Pattern, usage: ColorUsage[], opts:
   return canvas;
 }
 
+/** Triggers a browser download for a Blob, revoking the object URL afterwards. */
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
 export function downloadCanvas(canvas: HTMLCanvasElement, filename: string): Promise<void> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
-        reject(new Error('The image is too large for this browser to export.'));
+        reject(new Error('The image is too large for this browser to export. Try a smaller resolution.'));
         return;
       }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+      downloadBlob(blob, filename);
       resolve();
     }, 'image/png');
   });

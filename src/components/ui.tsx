@@ -13,7 +13,7 @@ export function Spinner({ label = 'Working…', className = '' }: { label?: stri
           />
         ))}
       </div>
-      <span className="text-sm font-bold text-slate-500">{label}</span>
+      <span className="text-sm font-bold text-ink-subtle">{label}</span>
     </div>
   );
 }
@@ -28,8 +28,8 @@ export function SectionTitle({ icon, title, subtitle, action }: { icon?: ReactNo
           </span>
         )}
         <div>
-          <h2 className="font-display text-lg font-semibold text-slate-800 sm:text-xl">{title}</h2>
-          {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+          <h2 className="font-display text-lg font-semibold text-ink sm:text-xl">{title}</h2>
+          {subtitle && <p className="text-sm text-ink-subtle">{subtitle}</p>}
         </div>
       </div>
       {action}
@@ -54,12 +54,12 @@ export function Slider({ label, value, min, max, step = 1, onChange, icon, forma
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label htmlFor={id} className="flex items-center gap-2 text-sm font-bold text-slate-700">
+        <label htmlFor={id} className="flex items-center gap-2 text-sm font-bold text-ink-soft">
           {icon}
           {label}
         </label>
         <div className="flex items-center gap-2">
-          <span className="min-w-[3ch] rounded-lg bg-slate-100 px-2 py-0.5 text-right text-xs font-extrabold tabular-nums text-slate-600">
+          <span className="min-w-[3ch] rounded-lg bg-surface-sunken px-2 py-0.5 text-right text-xs font-extrabold tabular-nums text-ink-muted">
             {format ? format(value) : value}
           </span>
           {resetValue !== undefined && value !== resetValue && (
@@ -99,10 +99,10 @@ export function Toggle({ label, checked, onChange, description, icon }: TogglePr
   return (
     <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl px-1 py-1.5">
       <span className="flex min-w-0 items-center gap-2">
-        {icon && <span className="text-slate-400">{icon}</span>}
+        {icon && <span className="text-ink-subtle">{icon}</span>}
         <span className="min-w-0">
-          <span className="block text-sm font-bold text-slate-700">{label}</span>
-          {description && <span className="block text-xs text-slate-500">{description}</span>}
+          <span className="block text-sm font-bold text-ink-soft">{label}</span>
+          {description && <span className="block text-xs text-ink-subtle">{description}</span>}
         </span>
       </span>
       <button
@@ -111,7 +111,7 @@ export function Toggle({ label, checked, onChange, description, icon }: TogglePr
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition ${checked ? 'bg-brand-500' : 'bg-slate-300'}`}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition ${checked ? 'bg-brand-500' : 'bg-line-strong'}`}
       >
         <span
           className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`}
@@ -131,7 +131,7 @@ interface SegmentedProps<T extends string> {
 
 export function Segmented<T extends string>({ value, options, onChange, ariaLabel, size = 'md' }: SegmentedProps<T>) {
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1">
+    <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-1 rounded-2xl bg-surface-sunken p-1">
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -144,7 +144,7 @@ export function Segmented<T extends string>({ value, options, onChange, ariaLabe
             onClick={() => onChange(o.value)}
             className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl font-bold transition ${
               size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm'
-            } ${active ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            } ${active ? 'bg-white text-brand-600 shadow-sm' : 'text-ink-subtle hover:text-ink-soft'}`}
           >
             {o.icon}
             {o.label}
@@ -174,13 +174,13 @@ export function BeadSwatch({ hex, size = 20, className = '', title }: { hex: str
 
 export function Stat({ label, value, hint, icon }: { label: string; value: ReactNode; hint?: string; icon?: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-3">
-      <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-slate-400">
+    <div className="rounded-2xl border border-line-soft bg-gradient-to-br from-white to-slate-50 p-3">
+      <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-ink-subtle">
         {icon}
         {label}
       </div>
-      <div className="mt-1 font-display text-2xl font-semibold tabular-nums text-slate-800">{value}</div>
-      {hint && <div className="text-xs text-slate-500">{hint}</div>}
+      <div className="mt-1 font-display text-2xl font-semibold tabular-nums text-ink">{value}</div>
+      {hint && <div className="text-xs text-ink-subtle">{hint}</div>}
     </div>
   );
 }
