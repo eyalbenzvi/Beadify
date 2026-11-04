@@ -27,8 +27,23 @@ export function computeTiles(width: number, height: number, tile = PEGBOARD_SIZE
  * Builds a multi-page A4 / Letter PDF: an overview page with the colour legend, then one
  * crisp vector page per 29 × 29 pegboard section with coordinates and symbols.
  */
+let jspdfModule: Promise<typeof import('jspdf')> | null = null;
+
+/**
+ * Starts downloading jsPDF ahead of time (call when the editor opens). The click
+ * handler then reaches `save()` without a slow network await, which iOS Safari
+ * needs to treat the download as part of the user gesture.
+ */
+export function preloadPdfEngine(): Promise<typeof import('jspdf')> {
+  jspdfModule ??= import('jspdf').catch((err: unknown) => {
+    jspdfModule = null; // allow a retry after a network failure
+    throw err;
+  });
+  return jspdfModule;
+}
+
 export async function exportPatternPdf(pattern: Pattern, usage: ColorUsage[], opts: PdfOptions): Promise<void> {
-  const { jsPDF } = await import('jspdf');
+  const { jsPDF } = await preloadPdfEngine();
   const paper = PAGE_SIZES[opts.pageSize];
   const PAGE_W = paper.width;
   const PAGE_H = paper.height;
@@ -45,6 +60,12 @@ export async function exportPatternPdf(pattern: Pattern, usage: ColorUsage[], op
     doc.text(`${opts.title} · Beadify`, MARGIN, PAGE_H - 6);
     doc.text(`Page ${page}`, PAGE_W - MARGIN, PAGE_H - 6, { align: 'right' });
   };
+
+  // Clickable outline (bookmarks) in the PDF viewer's sidebar. jsPDF's outline API is untyped.
+  const outline = (doc as unknown as {
+    outline?: { add: (parent: unknown, title: string, options: { pageNumber: number }) => unknown };
+  }).outline;
+  outline?.add(null, 'Overview & colour legend', { pageNumber: 1 });
 
   // ---------- Overview page ----------
   doc.setFont('helvetica', 'bold');
@@ -139,6 +160,11 @@ export async function exportPatternPdf(pattern: Pattern, usage: ColorUsage[], op
     const t = tiles[i];
     doc.addPage();
     page++;
+    outline?.add(
+      null,
+      `Board ${i + 1}: ${columnLabel(t.x0)}${t.y0 + 1}–${columnLabel(t.x0 + t.w - 1)}${t.y0 + t.h}`,
+      { pageNumber: page },
+    );
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(31, 41, 55);

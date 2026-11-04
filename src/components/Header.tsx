@@ -19,7 +19,7 @@ function Logo() {
       </div>
       <div className="leading-none">
         <span className="font-display text-2xl font-bold tracking-tight">
-          <span className="bg-gradient-to-r from-brand-600 to-violet-600 bg-clip-text text-transparent">Bead</span>
+          <span className="text-brand-600">Bead</span>
           <span className="text-ink">ify</span>
         </span>
         <span className="hidden text-[11px] font-bold text-ink-subtle sm:block">Pixels → Perler patterns</span>
@@ -66,7 +66,7 @@ export default function Header() {
                   aria-current={active ? 'step' : undefined}
                   className={`group flex w-full items-center justify-center gap-2 rounded-2xl px-2 py-2 text-xs font-bold transition sm:justify-start sm:px-3 sm:text-sm ${
                     active
-                      ? 'bg-gradient-to-r from-brand-500 to-violet-500 text-white shadow-pop'
+                      ? 'bg-brand-600 text-white shadow-sm'
                       : disabled
                         ? 'cursor-not-allowed text-slate-300'
                         : 'text-ink-muted hover:bg-white hover:shadow-soft'

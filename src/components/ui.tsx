@@ -23,7 +23,7 @@ export function SectionTitle({ icon, title, subtitle, action }: { icon?: ReactNo
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div className="flex items-start gap-3">
         {icon && (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-100 to-violet-100 text-brand-600">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             {icon}
           </span>
         )}
@@ -174,7 +174,7 @@ export function BeadSwatch({ hex, size = 20, className = '', title }: { hex: str
 
 export function Stat({ label, value, hint, icon }: { label: string; value: ReactNode; hint?: string; icon?: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-line-soft bg-gradient-to-br from-white to-slate-50 p-3">
+    <div className="rounded-2xl border border-line-soft bg-surface-muted p-3">
       <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-ink-subtle">
         {icon}
         {label}

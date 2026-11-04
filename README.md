@@ -11,7 +11,7 @@ Everything runs in the browser. Images never leave the device.
    - Board presets (15×15, 29×29, 58×29, 29×58, 58×58, 87×87) or a custom grid from 5 to 200.
    - 65 Perler and 48 Hama colours with code, name and hex.
    - Inventory quick presets (full palette, Basic 24, clear), search, colour-family filters. Saved to localStorage.
-   - Conversion options: CIEDE2000 or weighted-RGB matching, average or dominant sampling, Floyd–Steinberg dithering, a max-colour limit, fit/fill/stretch, and transparent areas as empty pegs.
+   - Conversion options: CIEDE2000 or weighted-RGB matching, average or dominant sampling, Floyd–Steinberg, Atkinson or Bayer dithering, a max-colour limit, fit/fill/stretch, and transparent areas as empty pegs.
 4. **Pattern Editor & Export**:
    - Canvas grid with wheel/pinch zoom and pan, A–Z / 1–N rulers, pegboard boundaries, round or square beads.
    - Grid and symbol toggles.
@@ -39,13 +39,14 @@ The current project autosaves locally and is restored on reload.
 
 ## Project skills
 
-`.claude/skills/` contains three Claude Code skills that encode this project's conventions:
+`.claude/skills/` holds three published, MIT-licensed Claude Code skills. Sources and licences
+are listed in `.claude/skills/SOURCES.md`.
 
-| Skill | Scope |
+| Skill | Applied in Beadify |
 | --- | --- |
-| `canvas-image-processing` | Image pipeline, workers, colour science, canvas limits |
-| `react-tailwind-design-system` | Tokens, layout, accessibility, motion, React patterns |
-| `export-print-engine` | PNG / SVG / PDF / print output and pagination |
+| `pixel-art-professional` | Floyd–Steinberg, Atkinson and Bayer 4×4 / 8×8 ordered dithering in the pattern engine |
+| `pdf-export` | PDF bookmarks per board, waiting for web fonts before canvas text, jsPDF preloading so `save()` stays in the user gesture on iOS |
+| `frontend-design-systems` | Restrained visual style: solid brand colour instead of decorative gradients, softer shadows, calm background |
 
 ## Deployment (GitHub Pages)
 

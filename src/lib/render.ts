@@ -82,6 +82,15 @@ export interface ExportOptions {
 
 const MAX_EXPORT_SIDE = 8000;
 
+/**
+ * Resolves once web fonts are ready, so canvas text never falls back to system fonts.
+ * Gives up after a short timeout so offline use still works.
+ */
+export function fontsReady(timeoutMs = 1500): Promise<void> {
+  const ready = document.fonts?.ready?.then(() => undefined) ?? Promise.resolve();
+  return Promise.race([ready, new Promise<void>((r) => window.setTimeout(r, timeoutMs))]);
+}
+
 /** Renders a high-resolution, self-contained pattern image with axes and legend. */
 export function renderPatternExport(pattern: Pattern, usage: ColorUsage[], opts: ExportOptions): HTMLCanvasElement {
   const { width, height } = pattern;

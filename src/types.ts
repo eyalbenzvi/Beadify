@@ -54,7 +54,7 @@ export interface Adjustments {
 }
 
 export type DistanceMethod = 'ciede2000' | 'weighted-rgb';
-export type DitherMode = 'none' | 'floyd-steinberg';
+export type DitherMode = 'none' | 'floyd-steinberg' | 'atkinson' | 'bayer4' | 'bayer8';
 export type FitMode = 'fill' | 'fit' | 'stretch';
 export type SamplingMode = 'average' | 'dominant';
 

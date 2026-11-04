@@ -182,7 +182,7 @@ export function AssemblyTips() {
       <SectionTitle icon={<Lightbulb className="h-5 w-5" />} title="Ironing & assembly tips" />
       <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {TIPS.map((t, i) => (
-          <li key={t.title} className="flex gap-3 rounded-2xl bg-gradient-to-br from-amber-50 to-pink-50 p-3.5">
+          <li key={t.title} className="flex gap-3 rounded-2xl bg-amber-50/70 p-3.5">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white font-display text-sm font-bold text-brand-600 shadow-sm">
               {i + 1}
             </span>

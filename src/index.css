@@ -23,11 +23,6 @@
   }
   body {
     @apply min-h-screen bg-canvas font-sans text-ink antialiased;
-    background-image:
-      radial-gradient(circle at 10% 0%, rgba(244, 114, 182, 0.12), transparent 40%),
-      radial-gradient(circle at 90% 10%, rgba(167, 139, 250, 0.12), transparent 40%),
-      radial-gradient(circle at 50% 100%, rgba(253, 224, 71, 0.10), transparent 45%);
-    background-attachment: fixed;
   }
   :focus-visible {
     @apply outline-none ring-2 ring-brand-400 ring-offset-2 ring-offset-white;
@@ -42,7 +37,7 @@
     @apply inline-flex select-none items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-gradient-to-r from-brand-500 to-violet-500 text-white shadow-pop hover:brightness-110;
+    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700;
   }
   .btn-secondary {
     @apply btn border border-line bg-white text-ink-soft hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700;
@@ -104,7 +99,7 @@ input[type='range'].slider {
   appearance: none;
   height: 8px;
   border-radius: 9999px;
-  background: linear-gradient(90deg, #f9a8d4, #c4b5fd);
+  background: #fbcfe8;
   cursor: pointer;
 }
 input[type='range'].slider::-webkit-slider-thumb {

@@ -214,17 +214,22 @@ export default function InventoryStep() {
               />
             </div>
             <div className={settings.sampling === 'dominant' ? 'pointer-events-none opacity-50' : ''}>
-              <p className="label mb-1.5">Dithering{settings.sampling === 'dominant' && ' (average sampling only)'}</p>
-              <Segmented
-                ariaLabel="Dithering"
+              <label htmlFor="dithering" className="label mb-1.5 block">
+                Dithering{settings.sampling === 'dominant' && ' (average sampling only)'}
+              </label>
+              <select
+                id="dithering"
+                aria-label="Dithering"
+                className="input"
                 value={settings.dither}
-                onChange={(v) => update('dither', v)}
-                size="sm"
-                options={[
-                  { value: 'none', label: 'None', title: 'Best for pixel art & logos' },
-                  { value: 'floyd-steinberg', label: 'Floyd–Steinberg', title: 'Smoother gradients for photos' },
-                ]}
-              />
+                onChange={(e) => update('dither', e.target.value as ConversionSettings['dither'])}
+              >
+                <option value="none">None (flat colours, best for pixel art)</option>
+                <option value="floyd-steinberg">Floyd–Steinberg (smooth photo gradients)</option>
+                <option value="atkinson">Atkinson (crisp, high contrast)</option>
+                <option value="bayer4">Bayer 4×4 (regular retro texture)</option>
+                <option value="bayer8">Bayer 8×8 (fine ordered gradient)</option>
+              </select>
             </div>
             <div>
               <label htmlFor="max-colors" className="label mb-1.5 block">

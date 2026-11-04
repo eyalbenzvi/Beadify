@@ -75,7 +75,7 @@ export default function UploadStep() {
         </p>
         <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-5xl">
           From photo to{' '}
-          <span className="bg-gradient-to-r from-brand-500 via-violet-500 to-sky-500 bg-clip-text text-transparent">
+          <span className="text-brand-600">
             pegboard
           </span>{' '}
           in seconds
@@ -104,7 +104,7 @@ export default function UploadStep() {
           }`}
         >
           <span
-            className={`mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-brand-400 to-violet-500 text-white shadow-pop transition ${
+            className={`mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-brand-500 text-white shadow-pop transition ${
               dragging ? 'animate-wiggle' : ''
             }`}
           >

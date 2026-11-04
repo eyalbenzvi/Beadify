@@ -51,6 +51,42 @@ export function applyAdjustments(data: Uint8ClampedArray, adj: Adjustments): voi
   }
 }
 
+/**
+ * Error-diffusion kernels as [dx, dy, weight]. Atkinson only spreads 6/8 of the
+ * error, which keeps highlights crisp. That suits bold, high-contrast bead art.
+ */
+const DIFFUSION_KERNELS: Partial<Record<ConversionSettings['dither'], [number, number, number][]>> = {
+  'floyd-steinberg': [
+    [1, 0, 7 / 16],
+    [-1, 1, 3 / 16],
+    [0, 1, 5 / 16],
+    [1, 1, 1 / 16],
+  ],
+  atkinson: [
+    [1, 0, 1 / 8],
+    [2, 0, 1 / 8],
+    [-1, 1, 1 / 8],
+    [0, 1, 1 / 8],
+    [1, 1, 1 / 8],
+    [0, 2, 1 / 8],
+  ],
+};
+
+const BAYER_4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+const BAYER_8 = [
+  0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28, 52, 20, 62, 30, 54, 22,
+  3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21,
+];
+
+/** Ordered (Bayer) threshold matrices for regular, texture-like dithering. */
+const BAYER: Partial<Record<ConversionSettings['dither'], { matrix: number[]; size: number; levels: number }>> = {
+  bayer4: { matrix: BAYER_4, size: 4, levels: 16 },
+  bayer8: { matrix: BAYER_8, size: 8, levels: 64 },
+};
+
+/** Amplitude of the ordered-dither offset in sRGB units (about the gap between neighbouring beads). */
+const ORDERED_SPREAD = 56;
+
 /** sRGB byte → linear light (0..1) lookup table. */
 const SRGB_TO_LINEAR = new Float32Array(256);
 for (let i = 0; i < 256; i++) {
@@ -136,7 +172,8 @@ export function buildPattern(input: BuildInput): Pattern {
     const g = Float32Array.from(gBuf);
     const b = Float32Array.from(bBuf);
     const cells: (string | null)[] = new Array(count).fill(null);
-    const dither = settings.dither === 'floyd-steinberg';
+    const kernel = DIFFUSION_KERNELS[settings.dither];
+    const bayer = BAYER[settings.dither];
     const spread = (i: number, er: number, eg: number, eb: number, f: number) => {
       if (empty[i]) return;
       r[i] += er * f;
@@ -147,20 +184,30 @@ export function buildPattern(input: BuildInput): Pattern {
       for (let x = 0; x < width; x++) {
         const i = y * width + x;
         if (empty[i]) continue;
-        const cr = r[i] < 0 ? 0 : r[i] > 255 ? 255 : r[i];
-        const cg = g[i] < 0 ? 0 : g[i] > 255 ? 255 : g[i];
-        const cb = b[i] < 0 ? 0 : b[i] > 255 ? 255 : b[i];
+        let cr = r[i];
+        let cg = g[i];
+        let cb = b[i];
+        if (bayer) {
+          // Ordered dithering: nudge the colour by the normalised threshold before matching.
+          const t = (bayer.matrix[(y % bayer.size) * bayer.size + (x % bayer.size)] + 0.5) / bayer.levels - 0.5;
+          cr += t * ORDERED_SPREAD;
+          cg += t * ORDERED_SPREAD;
+          cb += t * ORDERED_SPREAD;
+        }
+        cr = cr < 0 ? 0 : cr > 255 ? 255 : cr;
+        cg = cg < 0 ? 0 : cg > 255 ? 255 : cg;
+        cb = cb < 0 ? 0 : cb > 255 ? 255 : cb;
         const bead = matcher(cr, cg, cb);
         cells[i] = bead.id;
-        if (dither) {
+        if (kernel) {
           const er = cr - bead.rgb.r;
           const eg = cg - bead.rgb.g;
           const eb = cb - bead.rgb.b;
-          if (x + 1 < width) spread(i + 1, er, eg, eb, 7 / 16);
-          if (y + 1 < height) {
-            if (x > 0) spread(i + width - 1, er, eg, eb, 3 / 16);
-            spread(i + width, er, eg, eb, 5 / 16);
-            if (x + 1 < width) spread(i + width + 1, er, eg, eb, 1 / 16);
+          for (const [dx2, dy2, f] of kernel) {
+            const nx = x + dx2;
+            const ny = y + dy2;
+            if (nx < 0 || nx >= width || ny >= height) continue;
+            spread(ny * width + nx, er, eg, eb, f);
           }
         }
       }

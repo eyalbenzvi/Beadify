@@ -34,8 +34,8 @@ import PrintView from '../components/PrintView';
 import { BeadSwatch, SectionTitle, Segmented, Toggle } from '../components/ui';
 import { cellLabel, computeUsage, floodFill, replaceColor, symbolMap } from '../lib/pattern';
 import { remapCells } from '../lib/quantize';
-import { downloadCanvas, renderPatternExport, safeFilename } from '../lib/render';
-import { exportPatternPdf } from '../lib/exportPdf';
+import { downloadCanvas, fontsReady, renderPatternExport, safeFilename } from '../lib/render';
+import { exportPatternPdf, preloadPdfEngine } from '../lib/exportPdf';
 import { exportPatternSvg } from '../lib/exportSvg';
 import { PAGE_SIZES } from '../lib/pageGeometry';
 
@@ -107,6 +107,13 @@ export default function EditorStep() {
   const cells = draft ?? pattern?.cells ?? [];
   const title = source?.name ? `${source.name} bead pattern` : 'Bead pattern';
   const missing = useMemo(() => usage.filter((u) => !inventory.has(u.color.id)), [usage, inventory]);
+
+  // Fetch the PDF engine in the background so export starts instantly (and stays inside
+  // the user gesture on iOS Safari).
+  useEffect(() => {
+    const idle = window.setTimeout(() => void preloadPdfEngine().catch(() => undefined), 1200);
+    return () => window.clearTimeout(idle);
+  }, []);
 
   // Default active colour: the most used one that the user owns.
   useEffect(() => {
@@ -285,7 +292,7 @@ export default function EditorStep() {
 
   const exportPng = async () => {
     setExporting('png');
-    await new Promise((r) => setTimeout(r, 30));
+    await fontsReady();
     try {
       const canvas = renderPatternExport(pattern, usage, {
         showSymbols: view.showSymbols,
@@ -306,7 +313,6 @@ export default function EditorStep() {
 
   const exportPdf = async () => {
     setExporting('pdf');
-    await new Promise((r) => setTimeout(r, 30));
     try {
       await exportPatternPdf(pattern, usage, { title, showSymbols: view.showSymbols, pageSize: view.pageSize });
       toast.success('PDF downloaded', `${PAGE_SIZES[view.pageSize].label} · overview, legend and one page per pegboard.`);
